@@ -1,4 +1,3 @@
-# Creating a SQLite database and tables for the bot
 
 import sqlite3
 

@@ -5,7 +5,6 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 bot = telebot.TeleBot("7881735799:AAEfnq7_dET_fugTXRp0k9vRpOW1mpxJvBY")
 
-# Глобальные словари для отслеживания использованных эмодзи и правильных ответов
 user_emoji_history = {}
 user_correct_answers = {}
 
@@ -28,18 +27,15 @@ def get_random_emoji_and_content(chat_id, category_id):
     conn = sqlite3.connect('bot_database.db')
     cursor = conn.cursor()
 
-    # Получаем все эмодзи из выбранной категории, которые еще не использовались
     used_emojis = user_emoji_history.get(chat_id, {}).get(category_id, set())
     cursor.execute('SELECT id, emoji, content, answer FROM Content WHERE category_id = ?', (category_id,))
     results = cursor.fetchall()
 
-    # Фильтруем результаты, чтобы исключить использованные эмодзи
     available_results = [result for result in results if result[0] not in used_emojis]
 
     conn.close()
 
     if available_results:
-        # Выбираем случайный эмодзи из доступных
         result = random.choice(available_results)
         return result
     else:
@@ -62,7 +58,6 @@ def handle_category(message):
     categories = {'Фильмы': 1, 'Музыка': 2, 'Мемы': 3}
     category_id = categories[message.text]
 
-    # Сбрасываем историю использованных эмодзи и правильных ответов при выборе новой категории
     if message.chat.id not in user_emoji_history:
         user_emoji_history[message.chat.id] = {}
     user_emoji_history[message.chat.id][category_id] = set()
@@ -100,14 +95,14 @@ def check_answer(message, content, correct_answer, category_id):
     elif message.text == 'Выйти':
         bot.send_message(message.chat.id, "Выберите категорию:", reply_markup=create_category_keyboard())
     elif message.text.lower() == correct_answer.lower():
-        if category_id == 1:  # Фильмы
+        if category_id == 1:
             bot.send_video(message.chat.id, content)
-        elif category_id == 2:  # Музыка
+        elif category_id == 2:
             bot.send_audio(message.chat.id, content, title="Audio")
-        elif category_id == 3:  # Мемы
+        elif category_id == 3:
             bot.send_photo(message.chat.id, content)
 
-        # Увеличиваем счетчик правильных ответов
+
         user_correct_answers[message.chat.id][category_id] += 1
 
         next_emoji_data = get_random_emoji_and_content(message.chat.id, category_id)
@@ -120,7 +115,7 @@ def check_answer(message, content, correct_answer, category_id):
         else:
             total_emojis = get_total_emojis_in_category(category_id)
             correct_guesses = user_correct_answers[message.chat.id][category_id]
-            bot.send_message(message.chat.id, f"Вы использовали все эмодзи в этой категории. Вы угадали {correct_guesses} из {total_emojis} эмодзи.", reply_markup=create_category_keyboard())
+            bot.send_message(message.chat.id, f"Все эмодзи в этой категории кончились. Вы угадали {correct_guesses} из {total_emojis} эмодзи.", reply_markup=create_category_keyboard())
     else:
         bot.send_message(message.chat.id, "Неправильно! Попробуйте снова.", reply_markup=create_hint_keyboard())
         bot.register_next_step_handler(message, check_answer, content, correct_answer, category_id)
